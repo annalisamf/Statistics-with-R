@@ -1,0 +1,140 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(pander)
+library(tidyr)
+```
+
+### Load data
+
+
+```{r load-data}
+load("gss.Rdata")
+dim(gss)
+```
+
+
+* * *
+
+## Part 1: Data
+
+The GSS is a survey is conducted through in-person interview of randomly selected adults from noninstitutionalized population of 18 years of age or older in US. The survey has been contacted every year since 1972 (with few exceptions). The survey could have some biases for example due to the fact that it requires about 90 minutes to finish, therefore some people who do not have enough time might refuse to answer or not finish it. The survey is also voluntary and therefore it is biased toward people who had time and willingness to conduct the survey.
+The data of the GSS is generalizable to the broad US population, however because it is an observational study, we cannot assume causation from its study but only association.
+This dataset includes 57061 observations across 114 variables.
+
+* * *
+
+
+
+
+
+
+
+## Part 2: Research question
+
+Is there a relationship between party affiliation and support for foreign aid?
+It is generally believed that public opinion tends to dislike foreign aid for different reasons (https://www.devex.com/news/special-feature-a-history-of-american-public-opinion-on-foreign-aid-90732), most of the times because they overestimate the share of the budget allocated to foreign aid. There are in fact a lot of misconceptions about aid and international development. President Donald Trump's budget called for cuts of more than 30 percent to the U.S. foreign assistance program.  This radical and unprecedented measure could support the idea that Trump's presidency might have some impact over public opinion on foreign aid.  Through an analysis of the General Social Survey, I will examine of the public opinion on foreign aid to find evidence of associated with the political party affiliation. Fundings from such a study might be of interest to policy making and for development community.
+In order to answer this research question I will use the variables partyid, which asks the respondent about their political party affiliation ('Generally speaking, do you usually think of yourself as a Republican, Democrat, Independent, or what?') and nataid, which correspond to the question on whether public spending on foreign aid is too much, too little or about right ('We are faced with many problems in this country, none of which can be solved easily or inexpensively. I'm going to name some of these problems, and for each one I'd like you to tell me whether you think we're spending too much money on it, too little money, or about the right amount. Foreign aid').
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+
+
+First I check the variables and their values.
+
+```{r} 
+summary(gss$partyid)
+```
+
+```{r} 
+
+summary(gss$nataid)
+```
+
+From this summary we see that both variables have NA values, which we will eliminate for the analysis. Unfortunately the NAs are about half of the observations for the variable nataid and we will lose many observations by removing them, but we do not have much choice, however it is something to keep in mind. We can also observe that most of the respondents define themselves as not strong democrat and the great majority thinks that the government spends too much on foreign aid.
+We remove the NA value and tabulate the variables to visualize the distribution of the variables.
+
+```{r} 
+gss_1<-gss%>% filter(!(is.na(partyid)),!(is.na(nataid)))
+
+```
+
+Table of variables
+
+```{r} 
+partyaid <-table(gss_1$partyid,gss_1$nataid)
+partyaid
+```
+
+```{r} 
+
+prop.table(partyaid)
+```
+
+
+The tables indeed show that there are differences in opinion on foreign aid spending across political party affiliation and that proportions of opinions on foreign aid varies a lot across the political parties affiliation groups.
+
+Plot of the variables
+
+```{r} 
+g<-ggplot(gss_1)+aes (partyid, fill=nataid) + geom_bar(position="fill")+labs(x="Respondent's party affiliation",y="Proportion", title="Impact of political affiliation of foreign aid spending opinion")+scale_fill_discrete(name="Opinion on foreign aid spending")+ theme(axis.text.x = element_text(angle =45, size = 10, vjust = 0.5))
+g
+```
+
+From the graphical representation we see that there is a little difference between the groups, but it looks very small that we are unable to quantify it. It is also evident that across all the groups the majority of the respondent thinks that government spends too much on foreign aid, this is consistent with previous research as described in the introduction to this study).
+
+
+
+
+* * *
+
+## Part 4: Inference
+
+
+
+
+In this analysis the null hypothesis is that opinion on foreign aid spending is independent from the party affiliation, while the alternative hypothesis is that the two are dependent.
+
+H0 = party affiliation of the respondent and their opinion on whether foreign aid spending are independent
+HA: party affiliation of the respondent and their opinion on whether foreign aid spending are dependent
+In order to check these hypotheses we can run a chi-square test of independence, because we have 2 categorical variables with more than 2 levels.
+The conditions for this test are:
+1. Independence: this condition is met since the GSS uses random sampling. Sample size is less than 10% of the US population and each result is only counted in one cell.
+2. There are more than 5 expected cases for each scenario.
+```{r} 
+chisq.test(gss_1$partyid, gss_1$nataid)$expected
+```
+
+The chi-square does not define confidence intervals (it is a non-paramentric test), therefore they are not included here.
+
+
+##Chi Square test of independence
+
+```{r} 
+inference(data=gss_1, y=nataid, x=partyid, statistic = "proportion", type = "ht", alternative="greater", method = "theoretical")
+```
+
+This test returns a very high chi-square value and a very small p-value, close to zero (much lower that the significance level 0.05), therefore we reject the null hypothesis that party affiliation and opinion on public spending are independent in favor of the alternative hypothesis. This means that his test provides evidence that the perception on government spending on foreign aid is dependent the party affiliation of the respondent. Because this is an observational study, we can only assume association and not causation between the two variables.
+
+***
+## Resources:
+Special feature: A history of American public opinion on foreign aid - https://www.devex.com/news/special-feature-a-history-of-american-public-opinion-on-foreign-aid-90732
+Special feature: A history of American public opinion on foreign aid - https://www.americanprogress.org/issues/ext/2017/08/15/437399/special-feature-history-american-public-opinion-foreign-aid/
+Foreign Aid: most people think America gives too much away - https://today.yougov.com/news/2016/03/11/foreign-aid/
